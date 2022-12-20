@@ -15,5 +15,6 @@ export const shoppingItemRouter = router({
           name,
         },
       });
-    })
+    }),
+    getAllItems: publicProcedure.query(({ctx}) => ctx.prisma.shoppingItem.findMany())
 });
