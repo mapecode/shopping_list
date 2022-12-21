@@ -1,7 +1,9 @@
 import { type NextPage } from "next";
 import Head from "next/head";
-import Link from "next/link";
 import { useEffect, useState } from "react";
+import { motion } from 'framer-motion'
+import { HiX } from 'react-icons/hi'
+
 
 import type { ShoppingItem } from "@prisma/client";
 
@@ -15,8 +17,25 @@ const Home: NextPage = () => {
   const { data: itemsData, isLoading } =
     trpc.shoppingItem.getAllItems.useQuery();
 
+  const { mutate: toggleChecked } = trpc.shoppingItem.toggleChecked.useMutation({
+    onSuccess(shoppingItem) {
+      // remove previous (with checked value old)
+      setItems((previous) => previous.filter((item) => item.id !== shoppingItem.id))
+      // add new (with checked value updated)
+      setItems((previous) => [...previous, shoppingItem])
+    }
+  });
+
+  const { mutate: deleteItem } = trpc.shoppingItem.deleteItem.useMutation({
+    onSuccess(shoppingItem) {
+      // remove previous (with checked value old)
+      setItems((previous) => previous.filter((item) => item.id !== shoppingItem.id))
+    }
+  });
+
   useEffect(() => {
     if (itemsData) setItems(itemsData);
+    console.log(itemsData)
   }, [itemsData]);
 
   if (!itemsData || isLoading) return <p>Loading ...</p>;
@@ -46,7 +65,7 @@ const Home: NextPage = () => {
           </div>
           <ul className="mt-4">
             {items.map((item) => {
-              const { id, name } = item;
+              const { id, name, checked } = item;
 
               return (
                 <li
@@ -54,8 +73,27 @@ const Home: NextPage = () => {
                   className="flex w-full items-center justify-between"
                 >
                   <div className="relative">
-                    <span>{name}</span>
+                  <div className='pointer-events-none absolute inset-0 flex origin-left items-center justify-center'>
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: items.find((item) => item.id === id)?.checked ? '100%' : 0 }}
+                      transition={{ duration: 0.2, ease: 'easeInOut' }}
+                      className='h-[2px] w-full translate-y-px bg-red-500'
+                    />
                   </div>
+                    <span
+                      onClick={() => {
+                        toggleChecked({
+                          id,
+                          checked: !checked
+                        });
+                      }}
+                    >
+                      {name}
+                    </span>
+                  </div>
+                  <HiX onClick={() => deleteItem({ id })} className='cursor-pointer text-lg text-red-500' />
+
                 </li>
               );
             })}
